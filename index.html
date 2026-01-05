@@ -4,8 +4,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>考试签到查询系统</title>
+    <!-- Tailwind CSS - 使用官方CDN，添加备用方案 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <!-- html2canvas - 使用jsDelivr CDN，更稳定的CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <!-- GitHub Pages 兼容性脚本 -->
+    <script>
+        // 检查资源是否加载成功，如果失败则提供fallback
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                // 检查html2canvas是否加载成功
+                if (typeof html2canvas === 'undefined') {
+                    console.warn('html2canvas CDN failed, screenshot feature will be disabled');
+                    // 修改保存按钮的提示
+                    const saveBtn = document.querySelector('button[onclick="saveAsImage()"]');
+                    if (saveBtn) {
+                        saveBtn.onclick = function() {
+                            alert('截图功能不可用，请直接截取浏览器画面或使用打印功能');
+                        };
+                        saveBtn.innerHTML = '<span class="mr-1">📷</span>截图功能不可用';
+                    }
+                }
+
+                // 检查Tailwind CSS是否加载成功
+                if (!document.querySelector('[class*="bg-blue-50"]') ||
+                    getComputedStyle(document.body).backgroundColor === '') {
+                    console.warn('Tailwind CSS may not be loading properly, applying basic styles...');
+                    // 应用基本样式fallback
+                    applyBasicStyles();
+                }
+            }, 2000);
+        });
+
+        // 应用基本样式作为fallback
+        function applyBasicStyles() {
+            const style = document.createElement('style');
+            style.textContent = `
+                /* Basic fallback styles for better GitHub Pages compatibility */
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+                .bg-blue-50 { background-color: #eff6ff !important; }
+                .bg-green-50 { background-color: #f0fdf4 !important; }
+                .bg-purple-50 { background-color: #faf5ff !important; }
+                .bg-orange-50 { background-color: #fff7ed !important; }
+                .bg-blue-500 { background-color: #3b82f6 !important; }
+                .bg-green-600 { background-color: #16a34a !important; }
+                .bg-indigo-600 { background-color: #4f46e5 !important; }
+                .bg-white { background-color: white !important; }
+                .bg-gray-50 { background-color: #f9fafb !important; }
+                .text-white { color: white !important; }
+                .text-gray-800 { color: #1f2937 !important; }
+                .text-gray-600 { color: #4b5563 !important; }
+                .text-gray-500 { color: #6b7280 !important; }
+                .text-indigo-600 { color: #4f46e5 !important; }
+                .text-indigo-800 { color: #3730a3 !important; }
+                .border-gray-200 { border-color: #e5e7eb !important; }
+                .rounded-lg { border-radius: 0.5rem !important; }
+                .rounded-xl { border-radius: 0.75rem !important; }
+                .p-4 { padding: 1rem !important; }
+                .p-6 { padding: 1.5rem !important; }
+                .mb-4 { margin-bottom: 1rem !important; }
+                .mb-6 { margin-bottom: 1.5rem !important; }
+                .flex { display: flex !important; }
+                .items-center { align-items: center !important; }
+                .justify-center { justify-content: center !important; }
+                .justify-between { justify-content: space-between !important; }
+                .hidden { display: none !important; }
+                .text-center { text-align: center !important; }
+                .font-bold { font-weight: bold !important; }
+                .text-2xl { font-size: 1.5rem !important; line-height: 2rem !important; }
+                .text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
+                .text-4xl { font-size: 2.25rem !important; line-height: 2.5rem !important; }
+                .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; }
+                .cursor-pointer { cursor: pointer !important; }
+                .hover\\:bg-indigo-700:hover { background-color: #4338ca !important; }
+                .hover\\:bg-green-700:hover { background-color: #15803d !important; }
+                .hover\\:bg-blue-700:hover { background-color: #1d4ed8 !important; }
+                .hover\\:bg-gray-700:hover { background-color: #374151 !important; }
+            `;
+            document.head.appendChild(style);
+        }
+    </script>
     <style>
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
