@@ -238,29 +238,21 @@
                     <span class="mr-2">🔍</span>学生信息查询
                 </h2>
                 
-                <div class="flex flex-col md:flex-row gap-4 mb-6">
-                    <div class="flex-1">
-                        <label class="block text-gray-700 text-sm font-medium mb-2">查询方式</label>
-                        <div class="flex gap-4">
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="searchType" value="name" checked class="form-radio text-indigo-600">
-                                <span class="ml-2">按姓名查询</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="searchType" value="id" class="form-radio text-indigo-600">
-                                <span class="ml-2">按学号查询</span>
-                            </label>
-                        </div>
+                <div class="grid md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2">姓名</label>
+                        <input type="text" id="nameInput" placeholder="请输入完整姓名" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
 
-                    <div class="flex-2">
-                        <label class="block text-gray-700 text-sm font-medium mb-2">查询内容</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="searchInput" placeholder="请输入姓名或学号" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <button onclick="searchStudent()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
-                                查询
-                            </button>
-                        </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2">学号</label>
+                        <input type="text" id="idInput" placeholder="请输入完整学号" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <div class="flex items-end">
+                        <button onclick="searchStudent()" class="w-full bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+                            查询
+                        </button>
                     </div>
                 </div>
 
@@ -301,14 +293,13 @@
                 </div>
 
                 <div class="text-sm text-gray-600 mb-4">
-                    <span class="mr-2">💡</span>提示：输入完整姓名或学号进行精确查询，或输入部分信息进行模糊查询
                     <button onclick="toggleFilters()" class="ml-4 text-indigo-600 hover:text-indigo-800 underline">
                         高级筛选
                     </button>
                 </div>
                 
                 <div class="text-sm text-gray-600 mb-4">
-                    <span class="mr-2">💡</span>提示：输入完整姓名或学号进行精确查询，或输入部分信息进行模糊查询
+                    <span class="mr-2">💡</span>提示：请输入完整的姓名和学号进行精确查询，两个字段都必须正确填写
                 </div>
             </div>
 
@@ -433,6 +424,10 @@
                     <div class="space-y-4 text-gray-700 mb-6">
                         <div class="flex items-start">
                             <span class="text-red-500 mr-3 mt-1">•</span>
+                            <p>该工具仅为个人开发使用，仅供参考使用，不构成任何官方考试安排的最终依据。仅支持《电信学院》考试安排查询。</p>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="text-red-500 mr-3 mt-1">•</span>
                             <p>该工具使用Python程序提取Excel表格文件，数据处理过程中可能存在误差或遗漏。如有疑问，请以学院官方下发的考试文件为准。</p>
                         </div>
 
@@ -444,10 +439,6 @@
                         <div class="flex items-start">
                             <span class="text-blue-500 mr-3 mt-1">•</span>
                             <p>本工具仅供参考使用，不构成任何官方考试安排的最终依据。考试相关信息以学校教务处和各学院官方网站公布的信息为准。</p>
-                        </div>
-                        <div class="flex items-start">
-                            <span class="text-red-500 mr-3 mt-1">•</span>
-                            <p>目前仅支持《电信学院》考试安排查询。</p>
                         </div>
                     </div>
 
@@ -665,31 +656,22 @@
                 return;
             }
 
-            const searchType = document.querySelector('input[name="searchType"]:checked').value;
-            const searchInput = document.getElementById('searchInput').value.trim();
-            
-            if (!searchInput) {
-                alert('请输入查询内容');
+            const nameInput = document.getElementById('nameInput').value.trim();
+            const idInput = document.getElementById('idInput').value.trim();
+
+            if (!nameInput || !idInput) {
+                alert('请输入完整的姓名和学号');
                 return;
             }
-            
+
             showLoading(true);
-            
-            // 查找匹配的学生
+
+            // 查找匹配的学生（姓名和学号都必须精确匹配）
             const results = [];
 
             examData.forEach(exam => {
                 exam.学生列表.forEach(student => {
-                    if (searchType === 'name' && student.姓名.includes(searchInput)) {
-                        results.push({
-                            ...student,
-                            课程名称: exam.课程名称,
-                            // 考试地点和考试时间使用学生列表中的数据
-                            考试地点: student.考试地点 || exam.考试地点,
-                            考试时间: student.考试时间 || exam.考试时间,
-                            学院名称: student.学院名称 || exam.学院名称
-                        });
-                    } else if (searchType === 'id' && student.学号.includes(searchInput)) {
+                    if (student.姓名 === nameInput && student.学号 === idInput) {
                         results.push({
                             ...student,
                             课程名称: exam.课程名称,
@@ -923,7 +905,12 @@
         }
 
         // 监听回车键进行查询
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        document.getElementById('nameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchStudent();
+            }
+        });
+        document.getElementById('idInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 searchStudent();
             }
