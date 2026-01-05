@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考试签到查询系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 打印和截图专用样式 */
+        @media print {
+            body {
+                background: white !important;
+            }
+            .print-container {
+                background: white !important;
+                color: black !important;
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+            }
+            .print-container h3,
+            .print-container h4,
+            .print-container span,
+            .print-container div {
+                color: black !important;
+            }
+        }
+        
+        /* 截图专用样式 */
+        .print-container {
+            background: white !important;
+            color: #000000 !important;
+            padding: 20px !important;
+            border-radius: 8px !important;
+        }
+        .print-container h3,
+        .print-container h4 {
+            color: #000000 !important;
+            font-weight: bold !important;
+        }
+        .print-container .text-gray-800,
+        .print-container .text-gray-700,
+        .print-container .text-gray-600,
+        .print-container .text-gray-500 {
+            color: #000000 !important;
+        }
+        .print-container .text-indigo-800 {
+            color: #1e40af !important;
+            background-color: #dbeafe !important;
+        }
+        .print-container .border-gray-200 {
+            border-color: #000000 !important;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">📚</span>
+                    <span class="font-bold text-xl text-indigo-600">考试签到查询系统</span>
+                </div>
+                <div class="flex space-x-4">
+                    <button onclick="showPage('home')" class="nav-btn px-4 py-2 rounded-lg text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200">
+                        <span class="mr-1">🏠</span>首页
+                    </button>
+                    <button onclick="showPage('search')" class="nav-btn px-4 py-2 rounded-lg text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200">
+                        <span class="mr-1">🔍</span>查询
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 首页 -->
+    <div id="home" class="page active fade-in">
+        <div class="max-w-4xl mx-auto px-4 py-12">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-800 mb-4">
+                    <span class="text-5xl mr-2">📝</span>考试签到查询系统
+                </h1>
+                <p class="text-lg text-gray-600">快速查询学生考试信息和签到状态</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                    <div class="text-4xl mb-4 text-center">👨‍🎓</div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2 text-center">学生信息查询</h3>
+                    <p class="text-gray-600 text-center mb-4">通过姓名或学号快速查询学生考试信息</p>
+                    <button onclick="showPage('search')" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+                        开始查询
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                    <div class="text-4xl mb-4 text-center">📊</div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2 text-center">数据统计</h3>
+                    <p class="text-gray-600 text-center mb-4">查看考试数据统计和分析</p>
+                    <button onclick="loadStats()" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-200">
+                        查看统计
+                    </button>
+                </div>
+            </div>
+
+            <div id="statsContainer" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                    <span class="mr-2">📈</span>数据统计
+                </h3>
+                <div id="statsContent" class="grid md:grid-cols-3 gap-4">
+                    <!-- 统计数据将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查询页 -->
+    <div id="search" class="page">
+        <div class="max-w-4xl mx-auto px-4 py-12">
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <span class="mr-2">🔍</span>学生信息查询
+                </h2>
+                
+                <div class="flex flex-col md:flex-row gap-4 mb-6">
+                    <div class="flex-1">
+                        <label class="block text-gray-700 text-sm font-medium mb-2">查询方式</label>
+                        <div class="flex gap-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="searchType" value="name" checked class="form-radio text-indigo-600">
+                                <span class="ml-2">按姓名查询</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="searchType" value="id" class="form-radio text-indigo-600">
+                                <span class="ml-2">按学号查询</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex-2">
+                        <label class="block text-gray-700 text-sm font-medium mb-2">查询内容</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="searchInput" placeholder="请输入姓名或学号" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button onclick="searchStudent()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+                                查询
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 高级筛选 -->
+                <div id="advancedFilters" class="bg-gray-50 rounded-lg p-4 mb-4 hidden">
+                    <h4 class="text-md font-semibold mb-3 flex items-center">
+                        <span class="mr-2">🔍</span>高级筛选
+                        <button onclick="toggleFilters()" class="ml-auto text-sm text-gray-500 hover:text-gray-700">收起</button>
+                    </h4>
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-1">按课程筛选</label>
+                            <select id="courseFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">全部课程</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-1">按学院筛选</label>
+                            <select id="collegeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">全部学院</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-1">按考试时间筛选</label>
+                            <select id="timeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">全部时间</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <button onclick="applyFilters()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200">
+                            应用筛选
+                        </button>
+                        <button onclick="clearFilters()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                            清除筛选
+                        </button>
+                    </div>
+                </div>
+
+                <div class="text-sm text-gray-600 mb-4">
+                    <span class="mr-2">💡</span>提示：输入完整姓名或学号进行精确查询，或输入部分信息进行模糊查询
+                    <button onclick="toggleFilters()" class="ml-4 text-indigo-600 hover:text-indigo-800 underline">
+                        高级筛选
+                    </button>
+                </div>
+                
+                <div class="text-sm text-gray-600 mb-4">
+                    <span class="mr-2">💡</span>提示：输入完整姓名或学号进行精确查询，或输入部分信息进行模糊查询
+                </div>
+            </div>
+
+            <!-- 查询结果 -->
+            <div id="searchResults" class="bg-white rounded-xl shadow-lg p-6 hidden print-container">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">
+                        <span class="mr-2">📋</span>查询结果
+                    </h3>
+                    <div class="flex gap-2">
+                        <button onclick="saveAsImage()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200">
+                            <span class="mr-1">📷</span>保存为图片
+                        </button>
+                        <button onclick="exportToCSV()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                            <span class="mr-1">📄</span>导出CSV
+                        </button>
+                    </div>
+                </div>
+                <div id="resultsContent">
+                    <!-- 查询结果将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载提示 -->
+    <div id="loading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 flex items-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mr-3"></div>
+            <span class="text-gray-700">加载中...</span>
+        </div>
+    </div>
+
+    <!-- 隐藏的打印元素，用于生成图片 -->
+    <div id="printElement" class="hidden"></div>
+
+    <script>
+        // 全局变量
+        let examData = [];
+        let currentPage = 'home';
+
+        // 解析考试时间，返回可排序的时间戳
+        function parseExamTime(timeStr) {
+            if (!timeStr || timeStr === '未知时间') {
+                return Infinity; // 未知时间排在最后
+            }
+
+            try {
+                // 处理类似 "1月14日下午15:00-17:00" 的格式（已经包含24小时制）
+                const fullMatch = timeStr.match(/(\d+)月(\d+)日(?:上午|下午|晚上)?(\d+)[：:](\d+)/);
+                if (fullMatch) {
+                    const [, month, day, hour, minute] = fullMatch;
+                    let hourInt = parseInt(hour);
+                    // 如果明确标注下午且小时小于12，加上12小时
+                    if (timeStr.includes('下午') && hourInt < 12) {
+                        hourInt += 12;
+                    }
+                    // 如果小时已经是24小时制格式，直接使用
+                    const date = new Date(2025, parseInt(month) - 1, parseInt(day), hourInt, parseInt(minute));
+                    return date.getTime();
+                }
+
+                // 处理类似 "1月8日10：30-12：00" 的格式
+                const simpleMatch = timeStr.match(/(\d+)月(\d+)日(\d+)：(\d+)/);
+                if (simpleMatch) {
+                    const [, month, day, hour, minute] = simpleMatch;
+                    const date = new Date(2025, parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
+                    return date.getTime();
+                }
+
+                // 处理类似 "2026年1月9日10：30-11：30" 的格式
+                const yearMatch = timeStr.match(/(\d{4})年(\d+)月(\d+)日(\d+)：(\d+)/);
+                if (yearMatch) {
+                    const [, year, month, day, hour, minute] = yearMatch;
+                    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
+                    return date.getTime();
+                }
+
+                // 处理其他可能的格式，尝试提取月日时分
+                const generalMatch = timeStr.match(/(\d+)月(\d+)日.*(\d+)[：:](\d+)/);
+                if (generalMatch) {
+                    const [, month, day, hour, minute] = generalMatch;
+                    // 修正可能的错误分钟数（如300分钟）
+                    let minuteInt = parseInt(minute);
+                    if (minuteInt >= 60) {
+                        minuteInt = 30; // 假设是30分钟
+                    }
+                    const date = new Date(2025, parseInt(month) - 1, parseInt(day), parseInt(hour), minuteInt);
+                    return date.getTime();
+                }
+
+                // 如果无法解析，返回一个大的时间戳
+                return Date.now() + 1000000000000;
+            } catch (e) {
+                console.warn('时间解析失败:', timeStr, e);
+                return Date.now() + 1000000000000;
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExamData();
+        });
+
+        // 显示指定页面
+        function showPage(pageId) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // 显示指定页面
+            document.getElementById(pageId).classList.add('active');
+            currentPage = pageId;
+            
+            // 更新导航栏状态
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-indigo-600', 'bg-indigo-50');
+                btn.classList.add('text-gray-600');
+            });
+            
+            if (pageId === 'home') {
+                document.querySelectorAll('.nav-btn')[0].classList.remove('text-gray-600');
+                document.querySelectorAll('.nav-btn')[0].classList.add('text-indigo-600', 'bg-indigo-50');
+            } else if (pageId === 'search') {
+                document.querySelectorAll('.nav-btn')[1].classList.remove('text-gray-600');
+                document.querySelectorAll('.nav-btn')[1].classList.add('text-indigo-600', 'bg-indigo-50');
+            }
+        }
+
+        // 加载考试数据
+        function loadExamData() {
+            showLoading(true);
+            fetch('exam_data.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('数据加载失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    examData = data;
+                    console.log('考试数据加载成功，共', examData.length, '个考场');
+                    initializeFilters(); // 初始化筛选选项
+                    showLoading(false);
+                })
+                .catch(error => {
+                    console.error('加载考试数据时出错:', error);
+                    showLoading(false);
+                    alert('无法加载考试数据，请确保exam_data.json文件存在且格式正确');
+                });
+        }
+
+        // 加载统计数据
+        function loadStats() {
+            if (examData.length === 0) {
+                alert('数据尚未加载完成，请稍后再试');
+                return;
+            }
+
+            const statsContainer = document.getElementById('statsContainer');
+            const statsContent = document.getElementById('statsContent');
+
+            // 计算详细统计数据
+            let totalStudents = 0;
+            let totalClasses = new Set();
+            let totalColleges = new Set();
+            let courseStats = {};
+            let collegeStats = {};
+            let timeStats = {};
+
+            examData.forEach(exam => {
+                totalStudents += exam.学生列表.length;
+                // 分割班级名称（可能有多个班级）
+                const classes = exam.班级名称.split(';');
+                classes.forEach(cls => totalClasses.add(cls.trim()));
+                totalColleges.add(exam.学院名称);
+
+                // 课程统计
+                const course = exam.课程名称 || '未知课程';
+                if (!courseStats[course]) courseStats[course] = { exams: 0, students: 0 };
+                courseStats[course].exams++;
+                courseStats[course].students += exam.学生列表.length;
+
+                // 学院统计
+                const college = exam.学院名称 || '未知学院';
+                if (!collegeStats[college]) collegeStats[college] = { exams: 0, students: 0 };
+                collegeStats[college].exams++;
+                collegeStats[college].students += exam.学生列表.length;
+
+                // 时间统计
+                const time = exam.考试时间 || '未知时间';
+                if (!timeStats[time]) timeStats[time] = { exams: 0, students: 0 };
+                timeStats[time].exams++;
+                timeStats[time].students += exam.学生列表.length;
+            });
+
+            // 显示详细统计数据
+            let statsHTML = `
+                <div class="grid md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <div class="text-3xl mb-2">🏫</div>
+                        <div class="text-2xl font-bold text-blue-600">${examData.length}</div>
+                        <div class="text-gray-600">考场数量</div>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4 text-center">
+                        <div class="text-3xl mb-2">👨‍🎓</div>
+                        <div class="text-2xl font-bold text-green-600">${totalStudents}</div>
+                        <div class="text-gray-600">学生总数</div>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-4 text-center">
+                        <div class="text-3xl mb-2">🏢</div>
+                        <div class="text-2xl font-bold text-purple-600">${totalColleges.size}</div>
+                        <div class="text-gray-600">学院数量</div>
+                    </div>
+                    <div class="bg-orange-50 rounded-lg p-4 text-center">
+                        <div class="text-3xl mb-2">📚</div>
+                        <div class="text-2xl font-bold text-orange-600">${totalClasses.size}</div>
+                        <div class="text-gray-600">班级数量</div>
+                    </div>
+                </div>
+            `;
+
+            // 课程统计
+            statsHTML += '<div class="mb-6"><h4 class="text-lg font-semibold mb-3">📚 按课程统计</h4><div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">';
+            Object.entries(courseStats).sort((a, b) => b[1].students - a[1].students).forEach(([course, data]) => {
+                statsHTML += `
+                    <div class="bg-white border rounded-lg p-3">
+                        <div class="font-medium text-gray-800">${course}</div>
+                        <div class="text-sm text-gray-600">${data.exams}个考场，${data.students}名学生</div>
+                    </div>
+                `;
+            });
+            statsHTML += '</div></div>';
+
+            // 学院统计
+            statsHTML += '<div class="mb-6"><h4 class="text-lg font-semibold mb-3">🏢 按学院统计</h4><div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">';
+            Object.entries(collegeStats).sort((a, b) => b[1].students - a[1].students).forEach(([college, data]) => {
+                statsHTML += `
+                    <div class="bg-white border rounded-lg p-3">
+                        <div class="font-medium text-gray-800">${college}</div>
+                        <div class="text-sm text-gray-600">${data.exams}个考场，${data.students}名学生</div>
+                    </div>
+                `;
+            });
+            statsHTML += '</div></div>';
+
+            // 时间统计（只显示前10个最常见的）
+            const topTimes = Object.entries(timeStats).sort((a, b) => b[1].students - a[1].students).slice(0, 10);
+            statsHTML += '<div><h4 class="text-lg font-semibold mb-3">⏰ 按考试时间统计（Top 10）</h4><div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">';
+            topTimes.forEach(([time, data]) => {
+                statsHTML += `
+                    <div class="bg-white border rounded-lg p-3">
+                        <div class="font-medium text-gray-800">${time}</div>
+                        <div class="text-sm text-gray-600">${data.exams}个考场，${data.students}名学生</div>
+                    </div>
+                `;
+            });
+            statsHTML += '</div></div>';
+
+            statsContent.innerHTML = statsHTML;
+            statsContainer.classList.remove('hidden');
+            statsContainer.classList.add('fade-in');
+        }
+
+        // 查询学生信息
+        function searchStudent() {
+            if (examData.length === 0) {
+                alert('数据尚未加载完成，请稍后再试');
+                return;
+            }
+
+            const searchType = document.querySelector('input[name="searchType"]:checked').value;
+            const searchInput = document.getElementById('searchInput').value.trim();
+            
+            if (!searchInput) {
+                alert('请输入查询内容');
+                return;
+            }
+            
+            showLoading(true);
+            
+            // 查找匹配的学生
+            const results = [];
+
+            examData.forEach(exam => {
+                exam.学生列表.forEach(student => {
+                    if (searchType === 'name' && student.姓名.includes(searchInput)) {
+                        results.push({
+                            ...student,
+                            课程名称: exam.课程名称,
+                            考试地点: exam.考试地点,
+                            考试时间: exam.考试时间,
+                            学院名称: exam.学院名称
+                        });
+                    } else if (searchType === 'id' && student.学号.includes(searchInput)) {
+                        results.push({
+                            ...student,
+                            课程名称: exam.课程名称,
+                            考试地点: exam.考试地点,
+                            考试时间: exam.考试时间,
+                            学院名称: exam.学院名称
+                        });
+                    }
+                });
+            });
+
+            // 按照考试时间从近到远排序
+            results.sort((a, b) => {
+                const timeA = parseExamTime(a.考试时间);
+                const timeB = parseExamTime(b.考试时间);
+                return timeA - timeB; // 从近到远排序（小的在前）
+            });
+
+            // 显示查询结果
+            displaySearchResults(results);
+            showLoading(false);
+        }
+
+        // 显示查询结果
+        function displaySearchResults(results) {
+            const searchResults = document.getElementById('searchResults');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            if (results.length === 0) {
+                resultsContent.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="text-6xl mb-4">🔍</div>
+                        <p class="text-gray-600 text-lg">未找到匹配的学生信息</p>
+                        <p class="text-gray-500 mt-2">请检查输入的姓名或学号是否正确</p>
+                    </div>
+                `;
+            } else {
+                let html = '';
+                results.forEach((student, index) => {
+                    html += `
+                        <div class="border-b border-gray-200 pb-4 mb-4 ${index === 0 ? '' : 'pt-4'}">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-2">
+                                        <span class="text-2xl mr-2">👤</span>
+                                        <h4 class="text-lg font-semibold text-gray-800">${student.姓名}</h4>
+                                        <span class="ml-3 px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full">序号${student.序号}</span>
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-2 text-sm">
+                                        <div class="flex items-center">
+                                            <span class="text-gray-500 mr-2">🎓:</span>
+                                            <span class="text-gray-700">${student.学号}</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <span class="text-gray-500 mr-2">🏫:</span>
+                                            <span class="text-gray-700">${student.班级}</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <span class="text-gray-500 mr-2">📚:</span>
+                                            <span class="text-gray-700">${student.课程名称}</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <span class="text-gray-500 mr-2">📍:</span>
+                                            <span class="text-gray-700">${student.考试地点}</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <span class="text-gray-500 mr-2">⏰:</span>
+                                            <span class="text-gray-700">${student.考试时间}</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <span class="text-gray-500 mr-2">🏢:</span>
+                                            <span class="text-gray-700">${student.学院名称}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                resultsContent.innerHTML = html;
+            }
+            
+            searchResults.classList.remove('hidden');
+            searchResults.classList.add('fade-in');
+        }
+
+        // 保存为图片
+        function saveAsImage() {
+            const searchResults = document.getElementById('searchResults');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            if (!resultsContent.innerHTML.trim()) {
+                alert('没有可保存的查询结果');
+                return;
+            }
+            
+            showLoading(true);
+            
+            // 创建一个专门的打印元素
+            const printElement = document.getElementById('printElement');
+            
+            // 获取当前查询结果的标题和数据
+            const titleElement = searchResults.querySelector('h3');
+            const titleText = titleElement ? titleElement.textContent : '查询结果';
+            
+            // 构建打印内容的HTML，使用内联样式确保样式正确
+            let printHTML = `
+                <div style="background-color: #ffffff; color: #000000; padding: 20px; font-family: Arial, sans-serif; border-radius: 8px;">
+                    <h2 style="color: #000000; font-size: 24px; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid #000000; padding-bottom: 10px;">
+                        📋 ${titleText}
+                    </h2>
+                    <div style="color: #000000;">
+            `;
+            
+            // 获取所有学生结果
+            const studentCards = resultsContent.querySelectorAll('div[class*="border-b"]');
+            
+            if (studentCards.length === 0) {
+                // 如果没有结果，显示无结果消息
+                printHTML += `
+                    <div style="text-align: center; padding: 40px; color: #000000;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
+                        <p style="font-size: 18px; color: #000000;">未找到匹配的学生信息</p>
+                        <p style="font-size: 16px; color: #000000; margin-top: 10px;">请检查输入的姓名或学号是否正确</p>
+                    </div>
+                `;
+            } else {
+                // 添加每个学生的信息
+                studentCards.forEach((card, index) => {
+                    const nameElement = card.querySelector('h4');
+                    const name = nameElement ? nameElement.textContent : '';
+                    
+                    // 获取所有信息行
+                    const infoRows = card.querySelectorAll('div[class*="flex items-center"]');
+                    let studentInfo = '';
+                    
+                    infoRows.forEach(row => {
+                        const iconSpan = row.querySelector('span');
+                        const textSpan = row.querySelector('span:last-child');
+                        
+                        if (iconSpan && textSpan) {
+                            const icon = iconSpan.textContent;
+                            const text = textSpan.textContent;
+                            studentInfo += `
+                                <div style="margin-bottom: 8px; color: #000000;">
+                                    <span style="margin-right: 8px;">${icon}</span>
+                                    <span style="color: #000000; font-weight: normal;">${text}</span>
+                                </div>
+                            `;
+                        }
+                    });
+                    
+                    printHTML += `
+                        <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #000000;">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px; color: #000000;">
+                                <span style="font-size: 24px; margin-right: 10px;">👤</span>
+                                <h3 style="color: #000000; font-size: 18px; font-weight: bold; margin: 0;">${name}</h3>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; color: #000000;">
+                                ${studentInfo}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // 添加页脚
+            printHTML += `
+                    </div>
+                    <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 10px;">
+                        考试签到查询系统 - ${new Date().toLocaleDateString()}
+                    </div>
+                </div>
+            `;
+            
+            // 将HTML设置到打印元素
+            printElement.innerHTML = printHTML;
+            
+            // 显示打印元素（临时）
+            printElement.classList.remove('hidden');
+            printElement.style.position = 'absolute';
+            printElement.style.left = '-9999px';
+            printElement.style.top = '0';
+            printElement.style.width = '800px';
+            
+            // 使用html2canvas捕获打印元素
+            html2canvas(printElement, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                logging: false,
+                width: 800,
+                height: printElement.scrollHeight,
+                windowWidth: 800,
+                windowHeight: printElement.scrollHeight
+            }).then(canvas => {
+                // 隐藏打印元素
+                printElement.classList.add('hidden');
+                
+                // 创建下载链接
+                const link = document.createElement('a');
+                link.download = `考试查询结果_${new Date().toLocaleDateString()}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+                
+                showLoading(false);
+            }).catch(error => {
+                console.error('保存图片时出错:', error);
+                // 隐藏打印元素
+                printElement.classList.add('hidden');
+                alert('保存图片失败，请重试');
+                showLoading(false);
+            });
+        }
+
+        // 导出为CSV
+        function exportToCSV() {
+            const searchResults = document.getElementById('searchResults');
+            const resultsContent = document.getElementById('resultsContent');
+
+            if (!resultsContent.innerHTML.trim()) {
+                alert('没有可导出的查询结果');
+                return;
+            }
+
+            showLoading(true);
+
+            // 获取当前显示的学生数据
+            const studentCards = resultsContent.querySelectorAll('div[class*="border-b"]');
+            if (studentCards.length === 0) {
+                // 如果是筛选结果，导出筛选数据
+                const courseFilter = document.getElementById('courseFilter').value;
+                const collegeFilter = document.getElementById('collegeFilter').value;
+                const timeFilter = document.getElementById('timeFilter').value;
+
+                let filteredData = examData;
+
+                if (courseFilter) {
+                    filteredData = filteredData.filter(exam => exam.课程名称 === courseFilter);
+                }
+
+                if (collegeFilter) {
+                    filteredData = filteredData.filter(exam => exam.学院名称 === collegeFilter);
+                }
+
+                if (timeFilter) {
+                    filteredData = filteredData.filter(exam => exam.考试时间 === timeFilter);
+                }
+
+                // 构建CSV内容
+                let csvContent = "序号,班级,学号,姓名,课程名称,考试地点,考试时间,学院名称\n";
+
+                filteredData.forEach(exam => {
+                    exam.学生列表.forEach(student => {
+                        csvContent += `"${student.序号}","${student.班级}","${student.学号}","${student.姓名}","${exam.课程名称}","${exam.考试地点}","${exam.考试时间}","${exam.学院名称}"\n`;
+                    });
+                });
+
+                // 下载CSV文件
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `考试数据筛选结果_${courseFilter || '全部课程'}_${collegeFilter || '全部学院'}_${new Date().toLocaleDateString()}.csv`;
+                link.click();
+
+            } else {
+                // 如果是查询结果，导出查询结果
+                let csvContent = "序号,班级,学号,姓名,课程名称,考试地点,考试时间,学院名称\n";
+
+                studentCards.forEach(card => {
+                    const nameElement = card.querySelector('h4');
+                    const name = nameElement ? nameElement.textContent : '';
+
+                    // 获取所有信息行
+                    const infoRows = card.querySelectorAll('div[class*="flex items-center"]');
+                    let studentInfo = {};
+
+                    infoRows.forEach(row => {
+                        const iconSpan = row.querySelector('span');
+                        const textSpan = row.querySelector('span:last-child');
+
+                        if (iconSpan && textSpan) {
+                            const icon = iconSpan.textContent;
+                            const text = textSpan.textContent;
+
+                            if (icon.includes('🎓')) studentInfo.id = text;
+                            else if (icon.includes('🏫')) studentInfo.class = text;
+                            else if (icon.includes('📚')) studentInfo.course = text;
+                            else if (icon.includes('📍')) studentInfo.location = text;
+                            else if (icon.includes('⏰')) studentInfo.time = text;
+                            else if (icon.includes('🏢')) studentInfo.college = text;
+                        }
+                    });
+
+                    // 从卡片中提取序号
+                    const seqElement = card.querySelector('.bg-indigo-100');
+                    const seq = seqElement ? seqElement.textContent.replace('序号', '').trim() : '';
+
+                    csvContent += `"${seq}","${studentInfo.class || ''}","${studentInfo.id || ''}","${name}","${studentInfo.course || ''}","${studentInfo.location || ''}","${studentInfo.time || ''}","${studentInfo.college || ''}"\n`;
+                });
+
+                // 下载CSV文件
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `考试查询结果_${new Date().toLocaleDateString()}.csv`;
+                link.click();
+            }
+
+            showLoading(false);
+        }
+
+        // 显示/隐藏加载提示
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (show) {
+                loading.classList.remove('hidden');
+            } else {
+                loading.classList.add('hidden');
+            }
+        }
+
+        // 监听回车键进行查询
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchStudent();
+            }
+        });
+
+        // 初始化筛选选项
+        function initializeFilters() {
+            if (examData.length === 0) return;
+
+            const courseFilter = document.getElementById('courseFilter');
+            const collegeFilter = document.getElementById('collegeFilter');
+            const timeFilter = document.getElementById('timeFilter');
+
+            // 收集所有课程、学院、时间选项
+            const courses = new Set();
+            const colleges = new Set();
+            const times = new Set();
+
+            examData.forEach(exam => {
+                if (exam.课程名称) courses.add(exam.课程名称);
+                if (exam.学院名称) colleges.add(exam.学院名称);
+                if (exam.考试时间) times.add(exam.考试时间);
+            });
+
+            // 填充筛选选项
+            Array.from(courses).sort().forEach(course => {
+                const option = document.createElement('option');
+                option.value = course;
+                option.textContent = course;
+                courseFilter.appendChild(option);
+            });
+
+            Array.from(colleges).sort().forEach(college => {
+                const option = document.createElement('option');
+                option.value = college;
+                option.textContent = college;
+                collegeFilter.appendChild(option);
+            });
+
+            Array.from(times).sort().forEach(time => {
+                const option = document.createElement('option');
+                option.value = time;
+                option.textContent = time;
+                timeFilter.appendChild(option);
+            });
+        }
+
+        // 切换高级筛选显示
+        function toggleFilters() {
+            const filters = document.getElementById('advancedFilters');
+            const isHidden = filters.classList.contains('hidden');
+
+            if (isHidden) {
+                filters.classList.remove('hidden');
+                filters.classList.add('fade-in');
+                if (examData.length > 0) {
+                    initializeFilters();
+                }
+            } else {
+                filters.classList.add('hidden');
+            }
+        }
+
+        // 应用筛选
+        function applyFilters() {
+            const courseFilter = document.getElementById('courseFilter').value;
+            const collegeFilter = document.getElementById('collegeFilter').value;
+            const timeFilter = document.getElementById('timeFilter').value;
+
+            // 筛选数据
+            let filteredData = examData;
+
+            if (courseFilter) {
+                filteredData = filteredData.filter(exam => exam.课程名称 === courseFilter);
+            }
+
+            if (collegeFilter) {
+                filteredData = filteredData.filter(exam => exam.学院名称 === collegeFilter);
+            }
+
+            if (timeFilter) {
+                filteredData = filteredData.filter(exam => exam.考试时间 === timeFilter);
+            }
+
+            // 显示筛选结果
+            displayFilteredResults(filteredData, courseFilter, collegeFilter, timeFilter);
+        }
+
+        // 显示筛选结果
+        function displayFilteredResults(filteredData, courseFilter, collegeFilter, timeFilter) {
+            const searchResults = document.getElementById('searchResults');
+            const resultsContent = document.getElementById('resultsContent');
+
+            // 按照考试时间从近到远排序
+            filteredData.sort((a, b) => {
+                const timeA = parseExamTime(a.考试时间);
+                const timeB = parseExamTime(b.考试时间);
+                return timeA - timeB; // 从近到远排序（小的在前）
+            });
+
+            let totalStudents = 0;
+            filteredData.forEach(exam => totalStudents += exam.学生列表.length);
+
+            let html = `
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <span class="text-blue-400">📊</span>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700">
+                                筛选结果：找到 ${filteredData.length} 个考场，共 ${totalStudents} 名学生
+                                ${courseFilter ? `<br>课程：${courseFilter}` : ''}
+                                ${collegeFilter ? `<br>学院：${collegeFilter}` : ''}
+                                ${timeFilter ? `<br>考试时间：${timeFilter}` : ''}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (filteredData.length === 0) {
+                html += `
+                    <div class="text-center py-8">
+                        <div class="text-6xl mb-4">🔍</div>
+                        <p class="text-gray-600 text-lg">未找到匹配的考场信息</p>
+                        <p class="text-gray-500 mt-2">请调整筛选条件后重试</p>
+                    </div>
+                `;
+            } else {
+                // 显示前20个考场的摘要信息
+                html += '<div class="space-y-3">';
+                filteredData.slice(0, 20).forEach((exam, index) => {
+                    html += `
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800">${exam.课程名称 || '未知课程'}</h4>
+                                    <div class="text-sm text-gray-600 mt-1">
+                                        <span class="mr-4">📍 ${exam.考试地点 || '未知地点'}</span>
+                                        <span class="mr-4">⏰ ${exam.考试时间 || '未知时间'}</span>
+                                        <span>👥 ${exam.学生列表.length}名学生</span>
+                                    </div>
+                                    <div class="text-sm text-gray-500 mt-1">
+                                        🏢 ${exam.学院名称 || '未知学院'} | 📚 ${exam.班级名称 || '未知班级'}
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full">
+                                        考场 ${index + 1}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                if (filteredData.length > 20) {
+                    html += `
+                        <div class="text-center py-4">
+                            <p class="text-gray-500">... 还有 ${filteredData.length - 20} 个考场</p>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+
+            resultsContent.innerHTML = html;
+            searchResults.classList.remove('hidden');
+            searchResults.classList.add('fade-in');
+        }
+
+        // 清除筛选
+        function clearFilters() {
+            document.getElementById('courseFilter').value = '';
+            document.getElementById('collegeFilter').value = '';
+            document.getElementById('timeFilter').value = '';
+            document.getElementById('searchResults').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
