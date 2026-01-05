@@ -308,9 +308,9 @@
                         <button onclick="saveAsImage()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200">
                             <span class="mr-1">📷</span>保存为图片
                         </button>
-                        <!-- <button onclick="exportToCSV()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                        <button onclick="exportToCSV()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
                             <span class="mr-1">📄</span>导出CSV
-                        </button> -->
+                        </button>
                     </div>
                 </div>
                 <div id="resultsContent">
@@ -586,17 +586,19 @@
                         results.push({
                             ...student,
                             课程名称: exam.课程名称,
-                            考试地点: exam.考试地点,
-                            考试时间: exam.考试时间,
-                            学院名称: exam.学院名称
+                            // 考试地点和考试时间使用学生列表中的数据
+                            考试地点: student.考试地点 || exam.考试地点,
+                            考试时间: student.考试时间 || exam.考试时间,
+                            学院名称: student.学院名称 || exam.学院名称
                         });
                     } else if (searchType === 'id' && student.学号.includes(searchInput)) {
                         results.push({
                             ...student,
                             课程名称: exam.课程名称,
-                            考试地点: exam.考试地点,
-                            考试时间: exam.考试时间,
-                            学院名称: exam.学院名称
+                            // 考试地点和考试时间使用学生列表中的数据
+                            考试地点: student.考试地点 || exam.考试地点,
+                            考试时间: student.考试时间 || exam.考试时间,
+                            学院名称: student.学院名称 || exam.学院名称
                         });
                     }
                 });
@@ -844,7 +846,11 @@
 
                 filteredData.forEach(exam => {
                     exam.学生列表.forEach(student => {
-                        csvContent += `"${student.序号}","${student.班级}","${student.学号}","${student.姓名}","${exam.课程名称}","${exam.考试地点}","${exam.考试时间}","${exam.学院名称}"\n`;
+                        // 使用学生级别的考试时间和地点，如果没有则使用考场级别的数据
+                        const examLocation = student.考试地点 || exam.考试地点;
+                        const examTime = student.考试时间 || exam.考试时间;
+                        const collegeName = student.学院名称 || exam.学院名称;
+                        csvContent += `"${student.序号}","${student.班级}","${student.学号}","${student.姓名}","${exam.课程名称}","${examLocation}","${examTime}","${collegeName}"\n`;
                     });
                 });
 
