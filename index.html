@@ -445,6 +445,10 @@
                             <span class="text-blue-500 mr-3 mt-1">•</span>
                             <p>本工具仅供参考使用，不构成任何官方考试安排的最终依据。考试相关信息以学校教务处和各学院官方网站公布的信息为准。</p>
                         </div>
+                        <div class="flex items-start">
+                            <span class="text-red-500 mr-3 mt-1">•</span>
+                            <p>目前仅支持《电信学院》考试安排查询。</p>
+                        </div>
                     </div>
 
                     <div class="text-center">
@@ -477,8 +481,7 @@
             // 确认按钮点击事件
             confirmBtn.addEventListener('click', function() {
                 modal.remove();
-                // 标记已确认，允许页面正常使用
-                localStorage.setItem('disclaimerConfirmed', 'true');
+                // 移除弹窗，允许页面正常使用
             });
 
             // 防止ESC键关闭弹窗
@@ -531,14 +534,10 @@
                     initializeFilters(); // 初始化筛选选项
                     showLoading(false);
 
-                    // 检查是否需要显示免责声明
-                    const disclaimerConfirmed = localStorage.getItem('disclaimerConfirmed');
-                    if (!disclaimerConfirmed) {
-                        // 延迟一点时间显示弹窗，确保页面渲染完成
-                        setTimeout(() => {
-                            showDisclaimerModal();
-                        }, 500);
-                    }
+                    // 每次刷新都显示免责声明弹窗
+                    setTimeout(() => {
+                        showDisclaimerModal();
+                    }, 500);
                 })
                 .catch(error => {
                     console.error('加载考试数据时出错:', error);
