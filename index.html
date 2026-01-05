@@ -7,8 +7,22 @@
     <!-- Tailwind CSS - 使用官方CDN，添加备用方案 -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- html2canvas - 使用jsDelivr CDN，更稳定的CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- html2canvas - 异步加载，提升页面加载速度 -->
+    <script>
+        // 异步加载html2canvas，提升页面加载性能
+        (function() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+            script.async = true;
+            script.onload = function() {
+                console.log('html2canvas loaded successfully');
+            };
+            script.onerror = function() {
+                console.warn('html2canvas failed to load');
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
 
     <!-- GitHub Pages 兼容性脚本 -->
     <script>
@@ -308,9 +322,11 @@
                         <button onclick="saveAsImage()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200">
                             <span class="mr-1">📷</span>保存为图片
                         </button>
+                        <!-- 暂时注释掉导出CSV功能
                         <button onclick="exportToCSV()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
                             <span class="mr-1">📄</span>导出CSV
                         </button>
+                        -->
                     </div>
                 </div>
                 <div id="resultsContent">
@@ -394,10 +410,84 @@
             }
         }
 
-        // 页面加载时初始化
+        // 页面加载时初始化 - 优化加载速度
         document.addEventListener('DOMContentLoaded', function() {
-            loadExamData();
+            // 延迟加载数据，提升初始页面加载速度
+            setTimeout(function() {
+                loadExamData();
+            }, 100);
         });
+
+        // 显示免责声明弹窗
+        function showDisclaimerModal() {
+            const modal = document.createElement('div');
+            modal.id = 'disclaimerModal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg max-w-2xl mx-4 p-6 shadow-xl">
+                    <div class="text-center mb-6">
+                        <div class="text-4xl mb-2">⚠️</div>
+                        <h2 class="text-xl font-bold text-gray-800">重要提醒</h2>
+                    </div>
+
+                    <div class="space-y-4 text-gray-700 mb-6">
+                        <div class="flex items-start">
+                            <span class="text-red-500 mr-3 mt-1">•</span>
+                            <p>该工具使用Python程序提取Excel表格文件，数据处理过程中可能存在误差或遗漏。如有疑问，请以学院官方下发的考试文件为准。</p>
+                        </div>
+
+                        <div class="flex items-start">
+                            <span class="text-orange-500 mr-3 mt-1">•</span>
+                            <p>部分重修、随班及特殊课程可能在数据提取阶段未能正确识别或加载。如涉及此类情况，请务必查看学院官方发布的考试安排文件。</p>
+                        </div>
+
+                        <div class="flex items-start">
+                            <span class="text-blue-500 mr-3 mt-1">•</span>
+                            <p>本工具仅供参考使用，不构成任何官方考试安排的最终依据。考试相关信息以学校教务处和各学院官方网站公布的信息为准。</p>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button id="confirmBtn" class="bg-indigo-600 text-white px-8 py-2 rounded-lg hover:bg-indigo-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                            我已阅读并了解（<span id="countdown">5</span>秒）
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // 倒计时逻辑
+            let countdown = 5;
+            const countdownEl = document.getElementById('countdown');
+            const confirmBtn = document.getElementById('confirmBtn');
+            confirmBtn.disabled = true;
+
+            const timer = setInterval(() => {
+                countdown--;
+                countdownEl.textContent = countdown;
+
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '我已阅读并了解';
+                }
+            }, 1000);
+
+            // 确认按钮点击事件
+            confirmBtn.addEventListener('click', function() {
+                modal.remove();
+                // 标记已确认，允许页面正常使用
+                localStorage.setItem('disclaimerConfirmed', 'true');
+            });
+
+            // 防止ESC键关闭弹窗
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                }
+            }, { once: true });
+        }
 
         // 显示指定页面
         function showPage(pageId) {
@@ -440,6 +530,15 @@
                     console.log('考试数据加载成功，共', examData.length, '个考场');
                     initializeFilters(); // 初始化筛选选项
                     showLoading(false);
+
+                    // 检查是否需要显示免责声明
+                    const disclaimerConfirmed = localStorage.getItem('disclaimerConfirmed');
+                    if (!disclaimerConfirmed) {
+                        // 延迟一点时间显示弹窗，确保页面渲染完成
+                        setTimeout(() => {
+                            showDisclaimerModal();
+                        }, 500);
+                    }
                 })
                 .catch(error => {
                     console.error('加载考试数据时出错:', error);
@@ -807,106 +906,12 @@
             });
         }
 
-        // 导出为CSV
+        /*
+        // 导出为CSV - 暂时注释掉此功能
         function exportToCSV() {
-            const searchResults = document.getElementById('searchResults');
-            const resultsContent = document.getElementById('resultsContent');
-
-            if (!resultsContent.innerHTML.trim()) {
-                alert('没有可导出的查询结果');
-                return;
-            }
-
-            showLoading(true);
-
-            // 获取当前显示的学生数据
-            const studentCards = resultsContent.querySelectorAll('div[class*="border-b"]');
-            if (studentCards.length === 0) {
-                // 如果是筛选结果，导出筛选数据
-                const courseFilter = document.getElementById('courseFilter').value;
-                const collegeFilter = document.getElementById('collegeFilter').value;
-                const timeFilter = document.getElementById('timeFilter').value;
-
-                let filteredData = examData;
-
-                if (courseFilter) {
-                    filteredData = filteredData.filter(exam => exam.课程名称 === courseFilter);
-                }
-
-                if (collegeFilter) {
-                    filteredData = filteredData.filter(exam => exam.学院名称 === collegeFilter);
-                }
-
-                if (timeFilter) {
-                    filteredData = filteredData.filter(exam => exam.考试时间 === timeFilter);
-                }
-
-                // 构建CSV内容
-                let csvContent = "序号,班级,学号,姓名,课程名称,考试地点,考试时间,学院名称\n";
-
-                filteredData.forEach(exam => {
-                    exam.学生列表.forEach(student => {
-                        // 使用学生级别的考试时间和地点，如果没有则使用考场级别的数据
-                        const examLocation = student.考试地点 || exam.考试地点;
-                        const examTime = student.考试时间 || exam.考试时间;
-                        const collegeName = student.学院名称 || exam.学院名称;
-                        csvContent += `"${student.序号}","${student.班级}","${student.学号}","${student.姓名}","${exam.课程名称}","${examLocation}","${examTime}","${collegeName}"\n`;
-                    });
-                });
-
-                // 下载CSV文件
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `考试数据筛选结果_${courseFilter || '全部课程'}_${collegeFilter || '全部学院'}_${new Date().toLocaleDateString()}.csv`;
-                link.click();
-
-            } else {
-                // 如果是查询结果，导出查询结果
-                let csvContent = "序号,班级,学号,姓名,课程名称,考试地点,考试时间,学院名称\n";
-
-                studentCards.forEach(card => {
-                    const nameElement = card.querySelector('h4');
-                    const name = nameElement ? nameElement.textContent : '';
-
-                    // 获取所有信息行
-                    const infoRows = card.querySelectorAll('div[class*="flex items-center"]');
-                    let studentInfo = {};
-
-                    infoRows.forEach(row => {
-                        const iconSpan = row.querySelector('span');
-                        const textSpan = row.querySelector('span:last-child');
-
-                        if (iconSpan && textSpan) {
-                            const icon = iconSpan.textContent;
-                            const text = textSpan.textContent;
-
-                            if (icon.includes('🎓')) studentInfo.id = text;
-                            else if (icon.includes('🏫')) studentInfo.class = text;
-                            else if (icon.includes('📚')) studentInfo.course = text;
-                            else if (icon.includes('📍')) studentInfo.location = text;
-                            else if (icon.includes('⏰')) studentInfo.time = text;
-                            else if (icon.includes('🏢')) studentInfo.college = text;
-                        }
-                    });
-
-                    // 从卡片中提取序号
-                    const seqElement = card.querySelector('.bg-indigo-100');
-                    const seq = seqElement ? seqElement.textContent.replace('序号', '').trim() : '';
-
-                    csvContent += `"${seq}","${studentInfo.class || ''}","${studentInfo.id || ''}","${name}","${studentInfo.course || ''}","${studentInfo.location || ''}","${studentInfo.time || ''}","${studentInfo.college || ''}"\n`;
-                });
-
-                // 下载CSV文件
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `考试查询结果_${new Date().toLocaleDateString()}.csv`;
-                link.click();
-            }
-
-            showLoading(false);
+            // 此功能已暂时禁用，如需恢复请取消注释
         }
+        */
 
         // 显示/隐藏加载提示
         function showLoading(show) {
